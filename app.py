@@ -1,89 +1,79 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Colaboradores</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="{{ url_for('static', filename='estilo.css') }}">
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 30px;
-        }
+from flask import Flask, render_template
+from config import Config
+from models import db, Departamento, Colaborador
+from flask_sqlalchemy import SQLAlchemy
 
-        h1 {
-            color: #333;
-        }
+app = Flask(__name__)
+app.config.from_object(Config)
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
+db.init_app(app)
 
-        th {
-            background-color: #007BFF;
-            color: white;
-            padding: 12px;
-            text-align: left;
-        }
 
-        td {
-            padding: 10px;
-            border-bottom: 1px solid #ddd;
-        }
+@app.route("/")
+def home():
+    return render_template("index.html")
 
-        tr:nth-child(even) {
-            background-color: #f2f2f2;
-        }
 
-        tr:hover {
-            background-color: #e9ecef;
-        }
+@app.route("/departamentos")
+def listar_departamentos():
 
-        .voltar {
-            margin-top: 20px;
-        }
+    departamentos = Departamento.query.all()
 
-        .voltar a {
-            text-decoration: none;
-            color: #007BFF;
-            font-weight: bold;
-        }
-    </style>
-</head>
-<body>
+    return render_template(
+        "departamentos.html",
+        departamentos=departamentos
+    )
 
-<div class="container">
 
-    <h1>Lista de Colaboradores</h1>
-    <div class="voltar">
-        <a href="/">← Voltar para a página inicial</a>
-    </div>
-    <br>
-    <table>
-        <tr>
-            <th>Matrícula</th>
-            <th>Nome</th>
-            <th>Salário</th>
-            <th>E-mail</th>
-            <th>Endereço</th>
-            <th>Departamento</th>
-        </tr>
+@app.route("/colaboradores")
+def listar_colaboradores():
 
-        {% for colaborador in colaboradores %}
-            <tr>
-                <td>{{ colaborador.matricula }}</td>
-                <td>{{ colaborador.nome }}</td>
-                <td>R$ {{ "%.2f"|format(colaborador.salario) }}</td>
-                <td>{{ colaborador.email }}</td>
-                <td>{{ colaborador.endereco }}</td>
-                <td>{{ colaborador.departamento.nome }}</td>
-            </tr>
-            {% endfor %}
+    colaboradores = Colaborador.query.all()
 
-    </table>
+    return render_template(
+        "colaboradores.html",
+        colaboradores=colaboradores
+    )
 
-</div>
 
-</body>
-</html>
+@app.route("/relatorio-colaboradores")
+def relatorio_colaboradores():
+
+    colaboradores = Colaborador.query.all()
+
+    resultado = []
+
+    for colaborador in colaboradores:
+        resultado.append({
+            "matricula": colaborador.matricula,
+            "nome": colaborador.nome,
+            "salario": float(colaborador.salario) if colaborador.salario else None,
+            "email": colaborador.email,
+            "endereco": colaborador.endereco,
+            "departamento": colaborador.departamento.nome,
+            "sigla_departamento": colaborador.departamento.sigla
+        })
+
+    return resultado
+
+
+@app.route("/relatorio-departamentos")
+def relatorio_departamentos():
+
+    departamentos = Departamento.query.all()
+
+    resultado = []
+
+    for departamento in departamentos:
+        resultado.append({
+            "codigo": departamento.codigo,
+            "nome": departamento.nome,
+            "sigla": departamento.sigla,
+            "total_colaboradores": len(departamento.colaboradores)
+        })
+
+    return resultado
+
+
+if __name__ == "__main__":
+    app.run(debug=True)
